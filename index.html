@@ -3,22 +3,54 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="A simple welcome web app.">
-<title>Welcome</title>
+<meta name="description" content="Sign in to your Welcome app.">
+<title>Welcome · Sign in</title>
 <style>
-* { box-sizing: border-box; }
-body { margin: 0; min-height: 100vh; min-height: 100svh; display: grid; place-items: center; padding: 24px; font-family: system-ui, sans-serif; color: #eef2ff; background: radial-gradient(ellipse at top, #26356a, #0d1226 70%); }
-main { width: min(100%, 540px); text-align: center; padding: 64px 28px; border: 1px solid #ffffff26; border-radius: 28px; background: #ffffff08; box-shadow: 0 24px 80px #0004; }
-.icon { display: grid; place-items: center; width: 64px; height: 64px; margin: 0 auto 28px; border-radius: 20px; background: #a5b4fc; color: #172044; font-size: 32px; }
-h1 { margin: 0 0 16px; font-size: clamp(40px, 10vw, 64px); letter-spacing: -0.04em; }
-p { margin: 0; color: #c4cce5; font-size: 18px; line-height: 1.6; }
+*{box-sizing:border-box} [hidden]{display:none!important}
+body{margin:0;min-height:100vh;min-height:100svh;display:grid;place-items:center;padding:24px;background:radial-gradient(ellipse at top,#26356a,#0d1226 70%);color:#eef2ff;font-family:system-ui,sans-serif}
+main{width:min(100%,440px);padding:40px 32px;border:1px solid #ffffff26;border-radius:28px;background:#141d36;box-shadow:0 24px 80px #0004}
+.icon{display:grid;place-items:center;width:52px;height:52px;border-radius:16px;background:#a5b4fc;color:#172044;font-size:28px;margin-bottom:24px}
+h1{font-size:36px;letter-spacing:-.04em;margin:0 0 10px}p{color:#c4cce5;line-height:1.6;margin:0 0 26px}label{display:block;font-size:14px;margin:20px 0 8px}input,button{font:inherit}input{width:100%;padding:13px 14px;background:#0d1428;border:1px solid #526080;border-radius:10px;color:#eef2ff}input:focus-visible,button:focus-visible{outline:3px solid #a5b4fc;outline-offset:3px}button{cursor:pointer;border:0;border-radius:10px;padding:13px 18px;font-weight:600}.primary{width:100%;margin-top:24px;background:#a5b4fc;color:#111a39}.secondary{background:transparent;color:#c7d2fe;padding:8px 0}.switch{margin:22px 0 0;font-size:14px}button:disabled{opacity:.55;cursor:wait}#message{font-size:14px;margin:20px 0 0;overflow-wrap:anywhere}#identity{overflow-wrap:anywhere}.foot{font-size:12px;color:#a7b4d3;margin:28px 0 0}.password-row{display:flex;gap:10px;align-items:center}.password-row input{min-width:0}.password-row button{font-size:13px;background:#273454;color:#eef2ff}.error{color:#ffb9c4!important}
+@media(max-width:400px){main{padding:30px 22px}}
 </style>
 </head>
 <body>
 <main>
 <div class="icon" aria-hidden="true">✦</div>
-<h1>Welcome</h1>
-<p>Glad you're here. Enjoy your new web app!</p>
+<section id="auth-panel">
+<h1 id="heading">Welcome back</h1>
+<p id="subtitle">Sign in to your account to continue.</p>
+<form id="auth-form">
+<label for="email">Email address</label>
+<input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required maxlength="254">
+<label for="password">Password</label>
+<div class="password-row"><input id="password" name="password" type="password" autocomplete="current-password" required><button type="button" id="show-password" aria-label="Show password" aria-pressed="false">Show</button></div>
+<button class="primary" id="submit" disabled>Sign in</button>
+</form>
+<p class="switch"><span id="switch-copy">New here?</span> <button class="secondary" id="switch-mode" disabled>Create an account</button></p>
+</section>
+<section id="welcome-panel" hidden>
+<h1>Welcome</h1><p>You're signed in. Glad you're here!</p>
+<p id="identity"></p><button class="primary" id="sign-out">Sign out</button>
+</section>
+<p id="message" role="status" aria-live="polite">Connecting…</p>
+<p class="foot">Your Welcome account</p>
+<noscript><p>Please enable JavaScript to sign in.</p></noscript>
 </main>
+<script type="module">
+const PROJECT_URL = 'https://prlulsnfwpzemknpgdlg.supabase.co';
+const PUBLISHABLE_KEY = 'sb_publishable__7C2Fb3IVGPLQ96k-dDyyw_v4XxmdF1';
+const $ = id => document.getElementById(id);
+let client, mode = 'signin', busy = false;
+function message(text, error = false) { $('message').textContent = text; $('message').classList.toggle('error', error); }
+function pending(value) { busy = value; $('submit').disabled = value; $('switch-mode').disabled = value; $('sign-out').disabled = value; $('submit').textContent = value ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'; }
+function render(session) { $('auth-panel').hidden = !!session; $('welcome-panel').hidden = !session; $('identity').textContent = session?.user?.email || ''; if (session) $('password').value = ''; }
+$('show-password').addEventListener('click', () => { const show = $('password').type === 'password'; $('password').type = show ? 'text' : 'password'; $('show-password').textContent = show ? 'Hide' : 'Show'; $('show-password').setAttribute('aria-label', show ? 'Hide password' : 'Show password'); $('show-password').setAttribute('aria-pressed', String(show)); });
+$('switch-mode').addEventListener('click', () => { if (busy) return; mode = mode === 'signin' ? 'signup' : 'signin'; const signup = mode === 'signup'; $('heading').textContent = signup ? 'Create an account' : 'Welcome back'; $('subtitle').textContent = signup ? 'Start with your email and a password of at least 8 characters.' : 'Sign in to your account to continue.'; $('password').autocomplete = signup ? 'new-password' : 'current-password'; $('password').minLength = signup ? 8 : 1; $('switch-copy').textContent = signup ? 'Already have an account?' : 'New here?'; $('switch-mode').textContent = signup ? 'Sign in' : 'Create an account'; message(''); pending(false); });
+$('auth-form').addEventListener('submit', async event => { event.preventDefault(); if (busy || !client) return; pending(true); message(''); try { const credentials = { email: $('email').value.trim(), password: $('password').value }; const result = mode === 'signup' ? await client.auth.signUp({...credentials, options:{ emailRedirectTo: new URL('./', location.href).href }}) : await client.auth.signInWithPassword(credentials); if (result.error) throw result.error; render(result.data.session); $('password').value = ''; message(mode === 'signup' && !result.data.session ? 'Check your email to confirm your account, then return here to sign in.' : 'Signed in successfully.'); } catch(error) { message(error.message || 'Unable to sign in. Please try again.', true); } finally { pending(false); } });
+$('sign-out').addEventListener('click', async () => { if(busy || !client) return; pending(true); try { const {error} = await client.auth.signOut({scope:'local'}); if(error) throw error; render(null); message('You have signed out.'); } catch(error) { message(error.message || 'Unable to sign out. Please try again.', true); } finally { pending(false); } });
+try { const {createClient} = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'); client = createClient(PROJECT_URL, PUBLISHABLE_KEY); client.auth.onAuthStateChange((_event, session) => { render(session); }); const {data, error} = await client.auth.getSession(); if(error) throw error; render(data.session); message(''); pending(false); } catch(error) { message('Sign-in is temporarily unavailable. Please refresh and try again.', true); }
+</script>
 </body>
 </html>
+
